@@ -51,6 +51,7 @@ STRIP ?= strip
 VERSION ?= $(shell git describe --tag)
 LITTLEFS_VERSION := $(shell git -C littlefs describe --tags || echo "unknown")
 BUILD_CONFIG_NAME ?= -generic
+BUILD_REPOSITORY ?= $(shell git remote get-url origin 2>/dev/null || echo "unknown")
 
 OBJ		:= main.o \
 		   littlefs/lfs.o \
@@ -71,6 +72,7 @@ override CPPFLAGS := \
 	-D LITTLEFS_VERSION=\"$(LITTLEFS_VERSION)\" \
 	-D BUILD_CONFIG=\"$(BUILD_CONFIG_STR)\" \
 	-D BUILD_CONFIG_NAME=\"$(BUILD_CONFIG_NAME)\" \
+	-D BUILD_REPOSITORY=\"$(BUILD_REPOSITORY)\" \
 	-D __NO_INLINE__ \
 	-D LFS_NAME_MAX=255 \
 	$(CPPFLAGS)

@@ -99,7 +99,12 @@ int lfs_flash_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off,
 
 int lfs_flash_erase(const struct lfs_config *c, lfs_block_t block)
 {
-  memset(&s_flashmem[0] + block * c->block_size, 0, c->block_size);
+  // Erased NOR flash reads back as 0xff, which is also how actionPack()
+  // initializes s_flashmem before formatting. Filling with 0x00 used to leak
+  // into the packed image: the target can only clear bits, so any later
+  // program operation over those bytes fails and the filesystem becomes
+  // read-only until reformatted.
+  memset(&s_flashmem[0] + block * c->block_size, 0xff, c->block_size);
   return 0;
 }
 
@@ -422,9 +427,20 @@ int addFiles(const char* dirname, const char* subPath) {
                 // Check if path is a directory.
                 if (S_ISDIR(path_stat.st_mode)) {
                     // Prepare new sub path.
-                    std::string newSubPath = subPath;
-                    newSubPath += ent->d_name;
+                    std::string newDirPath = subPath;
+                    newDirPath += ent->d_name;
+                    std::string newSubPath = newDirPath;
                     newSubPath += "/";
+
+                    // Create the directory itself. addFile() only creates the
+                    // parents a file needs, so a directory holding no files
+                    // (directly or below) would otherwise never reach the image.
+                    if (lfs_mkdir(&s_fs, newDirPath.c_str()) == 0)
+                    {
+                        time_t dirTime = path_stat.st_mtime;
+                        lfs_setattr(&s_fs, newDirPath.c_str(), 't', (const void *)&dirTime, sizeof(dirTime));
+                        lfs_setattr(&s_fs, newDirPath.c_str(), 'c', (const void *)&dirTime, sizeof(dirTime));
+                    }
 
                     if (addFiles(dirname, newSubPath.c_str()) != 0)
                     {
@@ -886,6 +902,7 @@ public:
     {
         (void) c;
         std::cout << "mklittlefs ver. " VERSION << std::endl;
+        std::cout << "Build repository: " BUILD_REPOSITORY << std::endl;
         const char* configName = BUILD_CONFIG_NAME;
         if (configName[0] == '-') {
             configName += 1;

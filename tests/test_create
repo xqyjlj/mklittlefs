@@ -53,16 +53,16 @@ test_include_all_files() {
         exit 1
     fi
 
-    # With -a should get all files
+    # With -a should get all files, including the empty .git directory
     ${MKLITTLEFS} -a -c include_all_files -s ${size} ${fn} &>/dev/null
     listing=$(${MKLITTLEFS} -l ${fn})
     lines=$(echo "${listing}" | wc -l | xargs echo -n)
-    if [[ ${lines} != 5 ]]; then
+    if [[ ${lines} != 6 ]]; then
         echo "Wrong number of lines from -a listing: ${lines}"
         exit 1
     fi
     for i in app.js .DS_Store .git .gitignore .gitmodules; do
-        if [[ $(echo "${listing}" | grep "/${i}") == "" ]]; then
+        if [[ $(echo "${listing}" | grep -F $'\t/'"${i}"$'\t') == "" ]]; then
             echo "Didn't find ${i}"
             exit 1
         fi
