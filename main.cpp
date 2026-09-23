@@ -902,6 +902,7 @@ public:
     {
         (void) c;
         std::cout << "mklittlefs ver. " VERSION << std::endl;
+        std::cout << "Build repository: " BUILD_REPOSITORY << std::endl;
         const char* configName = BUILD_CONFIG_NAME;
         if (configName[0] == '-') {
             configName += 1;
