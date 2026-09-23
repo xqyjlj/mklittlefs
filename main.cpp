@@ -427,9 +427,20 @@ int addFiles(const char* dirname, const char* subPath) {
                 // Check if path is a directory.
                 if (S_ISDIR(path_stat.st_mode)) {
                     // Prepare new sub path.
-                    std::string newSubPath = subPath;
-                    newSubPath += ent->d_name;
+                    std::string newDirPath = subPath;
+                    newDirPath += ent->d_name;
+                    std::string newSubPath = newDirPath;
                     newSubPath += "/";
+
+                    // Create the directory itself. addFile() only creates the
+                    // parents a file needs, so a directory holding no files
+                    // (directly or below) would otherwise never reach the image.
+                    if (lfs_mkdir(&s_fs, newDirPath.c_str()) == 0)
+                    {
+                        time_t dirTime = path_stat.st_mtime;
+                        lfs_setattr(&s_fs, newDirPath.c_str(), 't', (const void *)&dirTime, sizeof(dirTime));
+                        lfs_setattr(&s_fs, newDirPath.c_str(), 'c', (const void *)&dirTime, sizeof(dirTime));
+                    }
 
                     if (addFiles(dirname, newSubPath.c_str()) != 0)
                     {
