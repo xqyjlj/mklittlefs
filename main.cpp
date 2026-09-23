@@ -99,7 +99,12 @@ int lfs_flash_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off,
 
 int lfs_flash_erase(const struct lfs_config *c, lfs_block_t block)
 {
-  memset(&s_flashmem[0] + block * c->block_size, 0, c->block_size);
+  // Erased NOR flash reads back as 0xff, which is also how actionPack()
+  // initializes s_flashmem before formatting. Filling with 0x00 used to leak
+  // into the packed image: the target can only clear bits, so any later
+  // program operation over those bytes fails and the filesystem becomes
+  // read-only until reformatted.
+  memset(&s_flashmem[0] + block * c->block_size, 0xff, c->block_size);
   return 0;
 }
 
